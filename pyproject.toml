@@ -6,6 +6,7 @@ authors = ["mush-8room <green_pea88@likelion.net>"]
 
 [tool.poetry.dependencies]
 python = "^3.9"
+boto3 = "^1.21.28"
 
 [tool.poetry.dev-dependencies]
 

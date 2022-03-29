@@ -26,6 +26,23 @@ Resources:
             Path: /hello
             Method: get
 
+
+  # SAM에서는 SAM에서 생성한 S3에만 이벤트를 붙일 수 있음
+  # S3 bucket
+  S3UploadBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders:
+              - "*"
+            AllowedMethods:
+              - GET
+              - PUT
+              - POST
+            AllowedOrigins:
+              - "http://localhost:3000"
+
 Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
   # Find out more about other implicit resources you can reference within SAM
@@ -39,3 +56,6 @@ Outputs:
   HelloWorldFunctionIamRole:
     Description: "Implicit IAM Role created for Hello World function"
     Value: !GetAtt HelloWorldFunctionRole.Arn
+  S3UploadBucketName:
+    Description: "S3 bucket for img uploads"
+    Value: !Ref 'S3UploadBucket'
