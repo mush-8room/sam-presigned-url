@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "my-sam"
+version = "0.1.0"
+description = ""
+authors = ["mush-8room <green_pea88@likelion.net>"]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
