@@ -5,26 +5,103 @@ Description: >
 
   Sample SAM Template for my-sam
 
-# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
   Function:
     Timeout: 3
-
+    Environment:
+      Variables:
+        UPLOAD_BUCKET: !Ref S3UploadBucket
+        URL_EXPIRE_SECONDS: 300
 Resources:
-  HelloWorldFunction:
-    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+  # using cognito for auth -> will change custom auth later
+  MyCognitoUserPool:
+    Type: "AWS::Cognito::UserPool"
     Properties:
-      CodeUri: hello_world/
+      UserPoolName: ImgUploadUserPool
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+      UsernameAttributes:
+        - email
+      Schema:
+        - AttributeDataType: String
+          Name: email
+          Required: false
+
+  MyCognitoUserPoolClient:
+    Type: "AWS::Cognito::UserPoolClient"
+    Properties:
+      UserPoolId: !Ref MyCognitoUserPool
+      ClientName: "MyUserPoolClient"
+      GenerateSecret: false
+      CallbackURLs:
+        - http://localhost:3000/callback
+      AllowedOAuthFlowsUserPoolClient: true
+      AllowedOAuthFlows:
+        - code
+        - implicit
+      AllowedOAuthScopes:
+        - phone
+        - email
+        - openid
+        - profile
+        - get-signed-url-api/read_signed_url
+      SupportedIdentityProviders:
+        - COGNITO
+    DependsOn: MyCognitoUserPoolResourceServer
+
+  MyCognitoUserPoolResourceServer:
+    Type: AWS::Cognito::UserPoolResourceServer
+    Properties:
+      UserPoolId: !Ref MyCognitoUserPool
+      Identifier: "get-signed-url-api"
+      Name: "Get Signed Url API"
+      Scopes:
+        - ScopeName: "read_signed_url"
+          ScopeDescription: "Read Signed Url"
+
+  MyCognitoUserPoolDomain:
+    Type: AWS::Cognito::UserPoolDomain
+    Properties:
+      UserPoolId: !Ref MyCognitoUserPool
+      Domain:
+        Ref: CognitoUserPoolDomainParameter
+
+#  PresignedUploadUrlApi:
+#    Type: AWS::Serverless::Api
+#    Properties:
+#      StageName: prod
+#      Cors:
+#        AllowMethods: "'POST, GET, PUT, OPTIONS'"
+#        AllowHeaders: "'*'"
+#        AllowOrigin: "'http://localhost:3000'"
+#        MaxAge: "'600'"
+#        AllowCredentials: true
+#      Auth:
+#        DefaultAuthorizer: MyCognitoAuthorizer
+#        Authorizers:
+#          MyCognitoAuthorizer:
+#            AuthorizationScopes:
+#              - get-signed-url-api/read_signed_url
+#            UserPoolArn: !GetAtt MyCognitoUserPool.Arn
+#        AddDefaultAuthorizerToCorsPreflight: false
+
+  UploadRequestFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: handlers/
       Handler: app.lambda_handler
       Runtime: python3.9
       Architectures:
         - x86_64
       Events:
-        HelloWorld:
-          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+        UploadImg:
+          Type: Api
           Properties:
-            Path: /hello
+#            RestApiId: !Ref PresignedUploadUrlApi
+            Path: /upload
             Method: get
+
 
 
   # SAM에서는 SAM에서 생성한 S3에만 이벤트를 붙일 수 있음
@@ -41,21 +118,24 @@ Resources:
               - PUT
               - POST
             AllowedOrigins:
-              - "http://localhost:3000"
+              - "*"
+#            Id: presignedUrlRule
+#            MaxAge: 3600
 
 Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
   # Find out more about other implicit resources you can reference within SAM
   # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
-  HelloWorldApi:
-    Description: "API Gateway endpoint URL for Prod stage for Hello World function"
-    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/hello/"
-  HelloWorldFunction:
-    Description: "Hello World Lambda Function ARN"
-    Value: !GetAtt HelloWorldFunction.Arn
-  HelloWorldFunctionIamRole:
-    Description: "Implicit IAM Role created for Hello World function"
-    Value: !GetAtt HelloWorldFunctionRole.Arn
+  GetPresignedUrlApi:
+    Description: "API Gateway endpoint URL for Prod stage for function"
+#    Value: !Sub "https://${PresignedUploadUrlApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/uploads/"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/upload/"
+  UploadRequestFunction:
+    Description: "Lambda Function ARN"
+    Value: !GetAtt UploadRequestFunction.Arn
+  UploadRequestIamRole:
+    Description: "Implicit IAM Role created"
+    Value: !GetAtt UploadRequestFunctionRole.Arn
   S3UploadBucketName:
     Description: "S3 bucket for img uploads"
     Value: !Ref 'S3UploadBucket'
