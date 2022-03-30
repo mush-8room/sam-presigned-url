@@ -12,6 +12,13 @@ Globals:
       Variables:
         UPLOAD_BUCKET: !Ref S3UploadBucket
         URL_EXPIRE_SECONDS: 300
+
+Parameters:
+  CognitoUserPoolDomainParameter:
+    Type: String
+    Default: upload-img-use-pool
+    Description: CognitoUserPool Domain Name
+    
 Resources:
   # using cognito for auth -> will change custom auth later
   MyCognitoUserPool:
@@ -67,24 +74,24 @@ Resources:
       Domain:
         Ref: CognitoUserPoolDomainParameter
 
-#  PresignedUploadUrlApi:
-#    Type: AWS::Serverless::Api
-#    Properties:
-#      StageName: prod
-#      Cors:
-#        AllowMethods: "'POST, GET, PUT, OPTIONS'"
-#        AllowHeaders: "'*'"
-#        AllowOrigin: "'http://localhost:3000'"
-#        MaxAge: "'600'"
-#        AllowCredentials: true
-#      Auth:
-#        DefaultAuthorizer: MyCognitoAuthorizer
-#        Authorizers:
-#          MyCognitoAuthorizer:
-#            AuthorizationScopes:
-#              - get-signed-url-api/read_signed_url
-#            UserPoolArn: !GetAtt MyCognitoUserPool.Arn
-#        AddDefaultAuthorizerToCorsPreflight: false
+  PresignedUploadUrlApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: prod
+    Cors:
+      AllowMethods: "'POST, GET, PUT, OPTIONS'"
+      AllowHeaders: "'*'"
+      AllowOrigin: "'http://localhost:3000'"
+      MaxAge: "'600'"
+      AllowCredentials: true
+    Auth:
+      DefaultAuthorizer: MyCognitoAuthorizer
+      Authorizers:
+        MyCognitoAuthorizer:
+          AuthorizationScopes:
+            - get-signed-url-api/read_signed_url
+          UserPoolArn: !GetAtt MyCognitoUserPool.Arn
+      AddDefaultAuthorizerToCorsPreflight: false
 
   UploadRequestFunction:
     Type: AWS::Serverless::Function
@@ -98,7 +105,7 @@ Resources:
         UploadImg:
           Type: Api
           Properties:
-#            RestApiId: !Ref PresignedUploadUrlApi
+            RestApiId: !Ref PresignedUploadUrlApi
             Path: /upload
             Method: get
 
@@ -126,10 +133,16 @@ Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
   # Find out more about other implicit resources you can reference within SAM
   # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
+  MyCognitoUserPoolURL:
+    Description: "MyCognitoUserPool URL"
+    Value: !Sub "https://${CognitoUserPoolDomainParameter}.auth.${AWS::Region}.amazoncognito.com"
+  MyCognitoUserPoolClientID:
+    Description: "MyCognitoUserPoolClient client_id"
+    Value: !Ref MyCognitoUserPoolClient
   GetPresignedUrlApi:
     Description: "API Gateway endpoint URL for Prod stage for function"
 #    Value: !Sub "https://${PresignedUploadUrlApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/uploads/"
-    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/upload/"
+    Value: !Sub "https://${PresignedUploadUrlApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/upload/"
   UploadRequestFunction:
     Description: "Lambda Function ARN"
     Value: !GetAtt UploadRequestFunction.Arn
