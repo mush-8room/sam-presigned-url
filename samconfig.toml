@@ -7,4 +7,5 @@ s3_bucket = "aws-sam-cli-managed-default-samclisourcebucket-1cdwopih9y0ls"
 s3_prefix = "sam-presigned-url"
 region = "ap-northeast-2"
 capabilities = "CAPABILITY_IAM"
+parameter_overrides = "CognitoUserPoolDomainParameter=\"upload-img-use-pool\""
 image_repositories = []
