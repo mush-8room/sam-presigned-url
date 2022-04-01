@@ -3,8 +3,8 @@ import { useCallback, useEffect, useState } from "react";
 import DragNDrop from "./components/DragNDrop";
 import Login from "./components/Login";
 
-const API_ENDPOINT = "https://nbwpsa17tl.execute-api.ap-northeast-2.amazonaws.com/Prod/upload/";
-  // "https://cd3c5jmpqd.execute-api.ap-northeast-2.amazonaws.com/prod/uploads";
+// img upload Rest API endpoint
+const API_ENDPOINT = "https://gbej3eztk7.execute-api.ap-northeast-2.amazonaws.com/prod/upload";
 
 function Home() {
   const [isLoggedIn, setIsLoggedIn] = useState(localStorage.getItem("access_token"))
@@ -12,6 +12,7 @@ function Home() {
   const [image, setImage] = useState(null);
   const [uploadUrl, setUploadUrl] = useState('')
 
+  // img upload를 위한 presigned url 요청
   const uploadImage = useCallback(
     async e => {
       const accessToken = localStorage.getItem("access_token");
@@ -23,6 +24,8 @@ function Home() {
         }
       });
 
+      console.log(uploadUrl)
+      // 업로드할 img binary로 변경
       const binary = atob(image.split(",")[1]);
       let array = []
       for (var i = 0; i < binary.length; i++) {
@@ -33,6 +36,7 @@ function Home() {
         type: "image/jpeg"
       });
 
+      // img를 presigned url을 통해 upload
       await axios.put(uploadUrl, {
         method: "PUT",
         body: blobData,
